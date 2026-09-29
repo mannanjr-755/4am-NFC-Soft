@@ -112,56 +112,53 @@ export async function POST(request: Request) {
     }
 
     // Retry briefly on rare concurrent orderNumber collisions (P2002).
-    let order = null as Awaited<
-      ReturnType<
-        typeof prisma.order.create<{ include: { items: true; table: true } }>
-      >
-    > | null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const orderNumber = await generateOrderNumber(restaurant.id, restaurant.slug);
-      try {
-        order = await prisma.$transaction(async (tx) => {
-          for (const [menuItemId, quantity] of stockDeductions) {
-            const menuItem = byId.get(menuItemId)!;
-            if (menuItem.stockQty === null) continue;
+    const order = await (async () => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const orderNumber = await generateOrderNumber(restaurant.id, restaurant.slug);
+        try {
+          return await prisma.$transaction(async (tx) => {
+            for (const [menuItemId, quantity] of stockDeductions) {
+              const menuItem = byId.get(menuItemId)!;
+              if (menuItem.stockQty === null) continue;
 
-            const updated = await tx.menuItem.updateMany({
-              where: {
-                id: menuItemId,
+              const updated = await tx.menuItem.updateMany({
+                where: {
+                  id: menuItemId,
+                  restaurantId: restaurant.id,
+                  stockQty: { gte: quantity },
+                },
+                data: { stockQty: { decrement: quantity } },
+              });
+              if (updated.count !== 1) throw new InsufficientStockError(menuItem.name);
+            }
+
+            return tx.order.create({
+              data: {
                 restaurantId: restaurant.id,
-                stockQty: { gte: quantity },
+                tableId: table.id,
+                orderNumber,
+                customerName: "Walking Customer",
+                orderType: "TAKE_AWAY",
+                status: saveToReports ? "REPORTED" : "NEW",
+                total,
+                items: {
+                  create: orderItems,
+                },
               },
-              data: { stockQty: { decrement: quantity } },
+              include: { items: true, table: true },
             });
-            if (updated.count !== 1) throw new InsufficientStockError(menuItem.name);
-          }
-
-          return tx.order.create({
-            data: {
-              restaurantId: restaurant.id,
-              tableId: table.id,
-              orderNumber,
-              customerName: "Walking Customer",
-              orderType: "TAKE_AWAY",
-              status: saveToReports ? "REPORTED" : "NEW",
-              total,
-              items: {
-                create: orderItems,
-              },
-            },
-            include: { items: true, table: true },
           });
-        });
-        break;
-      } catch (err) {
-        const code =
-          err && typeof err === "object" && "code" in err
-            ? (err as { code?: string }).code
-            : undefined;
-        if (code === "P2002" && attempt < 2) continue;
-        throw err;
+        } catch (err) {
+          const code =
+            err && typeof err === "object" && "code" in err
+              ? (err as { code?: string }).code
+              : undefined;
+          if (code === "P2002" && attempt < 2) continue;
+          throw err;
+        }
       }
-    }
+      return null;
+    })();
 
     if (!order) {
       return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
