@@ -125,12 +125,16 @@ function receiptStyle(paperMm: ReceiptPaperWidth): string {
     8,
     innerContentWidthMm(cfg) - cfg.itemsColQtyMm - cfg.itemsColAmtMm
   );
-  const nameSize = paperMm === 80 ? "14px" : "12px";
-  const subSize = paperMm === 80 ? "9px" : "8px";
-  const itemSize = paperMm === 80 ? "10px" : "9px";
-  const totalsGrand = paperMm === 80 ? "13px" : "12px";
-  const logoMm = paperMm === 80 ? "14mm" : "11mm";
-  const lxSize = paperMm === 80 ? "7.5px" : "6.5px";
+  const nameSize = paperMm === 80 ? "16px" : "12px";
+  const subSize = paperMm === 80 ? "11px" : "8px";
+  const kvSize = paperMm === 80 ? "12px" : "9px";
+  const itemSize = paperMm === 80 ? "12px" : "9px";
+  const thSize = paperMm === 80 ? "10px" : "8px";
+  const unitSize = paperMm === 80 ? "9px" : "7.5px";
+  const totalsGrand = paperMm === 80 ? "15px" : "12px";
+  const logoMm = paperMm === 80 ? "16mm" : "11mm";
+  const lxSize = paperMm === 80 ? "8.5px" : "6.5px";
+  const thanksSize = paperMm === 80 ? "12px" : "10px";
 
   return `
     * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -138,8 +142,8 @@ function receiptStyle(paperMm: ReceiptPaperWidth): string {
     body {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
       color: #000;
-      font-size: 11px;
-      line-height: 1.3;
+      font-size: ${paperMm === 80 ? "12px" : "11px"};
+      line-height: 1.35;
       width: ${pageMm}mm;
       max-width: ${pageMm}mm;
       margin: 0;
@@ -154,33 +158,35 @@ function receiptStyle(paperMm: ReceiptPaperWidth): string {
     }
     .center { text-align: center; }
     .logo { display: block; width: ${logoMm}; height: ${logoMm}; margin: 0 auto 1mm; object-fit: contain; }
-    .r-name { font-size: ${nameSize}; font-weight: 700; letter-spacing: 0.04em; margin: 0; text-align: center; overflow-wrap: anywhere; }
-    .r-sub { font-size: ${subSize}; letter-spacing: 0; margin: 0.4mm 0 0; text-align: center; overflow-wrap: anywhere; }
-    hr.dash { border: 0; border-top: 1px dashed #000; margin: 1.2mm 0; }
+    .r-name { font-size: ${nameSize}; font-weight: 800; letter-spacing: 0.03em; margin: 0; text-align: center; overflow-wrap: anywhere; }
+    .r-sub { font-size: ${subSize}; font-weight: 600; letter-spacing: 0; margin: 0.5mm 0 0; text-align: center; overflow-wrap: anywhere; color: #000; }
+    hr.dash { border: 0; border-top: 1px dashed #000; margin: 1.4mm 0; }
     table { width: 100%; max-width: 100%; border-collapse: collapse; table-layout: fixed; }
-    .kv td { padding: 0.25mm 0; font-size: ${itemSize}; vertical-align: top; }
-    .kv td.k { width: 34%; color: #333; padding-right: 1mm; }
+    .kv td { padding: 0.45mm 0; font-size: ${kvSize}; vertical-align: top; color: #000; }
+    .kv td.k { width: 32%; color: #000; font-weight: 700; padding-right: 1mm; }
     .kv td.v {
-      width: 66%;
+      width: 68%;
       text-align: right;
-      font-weight: 600;
+      font-weight: 700;
       overflow-wrap: anywhere;
       word-break: break-word;
       padding-right: ${amtPad};
     }
     .items { font-size: ${itemSize}; width: 100%; }
     .items th {
-      font-size: 8px;
+      font-size: ${thSize};
+      font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0;
-      padding: 0 ${amtPad} 0.6mm 0;
+      padding: 0 ${amtPad} 0.7mm 0;
       border-bottom: 1px solid #000;
       text-align: left;
       overflow: hidden;
+      color: #000;
     }
     .items th.n, .items td.n { text-align: right; }
-    .items td { padding: 0.5mm ${amtPad} 0.5mm 0; vertical-align: top; }
-    .items .n { font-variant-numeric: tabular-nums; }
+    .items td { padding: 0.55mm ${amtPad} 0.55mm 0; vertical-align: top; font-weight: 600; }
+    .items .n { font-variant-numeric: tabular-nums; font-weight: 700; }
     .items .item {
       width: ${itemColMm}mm;
       max-width: ${itemColMm}mm;
@@ -196,25 +202,25 @@ function receiptStyle(paperMm: ReceiptPaperWidth): string {
       padding-right: ${amtPad};
       text-align: right;
     }
-    .items .unit { display: block; font-size: 7.5px; font-weight: 500; color: #333; margin-top: 0.2mm; overflow-wrap: anywhere; word-break: break-word; }
+    .items .unit { display: block; font-size: ${unitSize}; font-weight: 600; color: #000; margin-top: 0.25mm; overflow-wrap: anywhere; word-break: break-word; }
     .totals { font-size: ${itemSize}; width: 100%; }
-    .totals td { padding: 0.35mm 0; }
+    .totals td { padding: 0.45mm 0; font-weight: 700; }
     .totals td.l { width: 55%; overflow-wrap: anywhere; padding-right: 1mm; }
     .totals td.r {
       width: 45%;
       text-align: right;
-      font-weight: 700;
+      font-weight: 800;
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
       padding-right: ${amtPad};
       max-width: ${cfg.itemsColAmtMm + cfg.itemsColQtyMm}mm;
     }
-    .totals tr.grand td { font-size: ${totalsGrand}; padding-top: 0.8mm; border-top: 1px solid #000; }
-    .note { font-size: 8.5px; margin-top: 1mm; word-break: break-word; }
+    .totals tr.grand td { font-size: ${totalsGrand}; padding-top: 0.9mm; border-top: 1px solid #000; }
+    .note { font-size: ${kvSize}; margin-top: 1mm; word-break: break-word; font-weight: 600; }
     .note b { text-transform: uppercase; }
-    .thanks { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; margin: 1.8mm 0 0; text-align: center; }
+    .thanks { font-size: ${thanksSize}; font-weight: 800; letter-spacing: 0.06em; margin: 2mm 0 0; text-align: center; }
     .lx { margin-top: 3.5mm; text-align: center; }
-    .lx-text { font-size: ${lxSize}; font-weight: 600; letter-spacing: 0.06em; margin: 0; text-align: center; overflow-wrap: anywhere; }
+    .lx-text { font-size: ${lxSize}; font-weight: 700; letter-spacing: 0.06em; margin: 0; text-align: center; overflow-wrap: anywhere; }
     .lx-text strong { font-weight: 800; }
     .feed { height: 0; }
     .kot-banner { font-size: ${paperMm === 80 ? "18px" : "15px"}; font-weight: 800; letter-spacing: 0.14em; margin: 1mm 0 0; }

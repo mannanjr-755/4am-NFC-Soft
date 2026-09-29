@@ -36,14 +36,14 @@ export const PAPER_CONFIG: Record<ReceiptPaperWidth, PaperLayoutConfig> = {
   },
   "80": {
     paperWidthMm: 80,
-    /** Below nominal 72mm — avoids right-edge clip on common 80mm ESC/POS heads. */
-    printableWidthMm: 66,
-    padXMm: 2,
-    charsPerLine: 42,
+    /** Safe zone under 80mm — fills the roll without right-edge clip. */
+    printableWidthMm: 72,
+    padXMm: 1.5,
+    charsPerLine: 46,
     printDots: 576,
-    itemsColQtyMm: 8,
-    itemsColAmtMm: 22,
-    amountPadRightMm: 1.5,
+    itemsColQtyMm: 9,
+    itemsColAmtMm: 24,
+    amountPadRightMm: 1,
   },
 };
 
