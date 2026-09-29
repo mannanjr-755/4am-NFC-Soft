@@ -79,7 +79,14 @@ function orderSubtotal(order: ReceiptOrder): number {
  * Receipt footer attribution — text only, centered on the slip.
  */
 
-export type ReceiptPaperWidth = 58 | 80;
+import {
+  getPaperConfig,
+  innerContentWidthMm,
+  type ReceiptPaperWidth,
+} from "@/lib/receiptPaperConfig";
+
+export type { ReceiptPaperWidth } from "@/lib/receiptPaperConfig";
+export { PAPER_CONFIG, getPaperConfig } from "@/lib/receiptPaperConfig";
 
 const PAPER_STORAGE_KEY = "4am-receipt-paper-mm";
 
@@ -108,14 +115,16 @@ function formatReceiptMoney(amount: number): string {
   return `Rs.${new Intl.NumberFormat("en-PK").format(Math.round(amount))}`;
 }
 
-/**
- * 58mm: ~48mm content (safe printable zone on narrow rolls).
- * 80mm: ~72mm content (safe printable zone on wide rolls).
- */
 function receiptStyle(paperMm: ReceiptPaperWidth): string {
-  const contentMm = paperMm === 80 ? 72 : 48;
-  const pageMm = paperMm;
-  const padX = paperMm === 80 ? "2.5mm" : "1mm";
+  const cfg = getPaperConfig(paperMm);
+  const pageMm = cfg.paperWidthMm;
+  const slipMm = cfg.printableWidthMm;
+  const padX = `${cfg.padXMm}mm`;
+  const amtPad = `${cfg.amountPadRightMm}mm`;
+  const itemColMm = Math.max(
+    8,
+    innerContentWidthMm(cfg) - cfg.itemsColQtyMm - cfg.itemsColAmtMm
+  );
   const nameSize = paperMm === 80 ? "14px" : "12px";
   const subSize = paperMm === 80 ? "9px" : "8px";
   const itemSize = paperMm === 80 ? "10px" : "9px";
@@ -131,32 +140,75 @@ function receiptStyle(paperMm: ReceiptPaperWidth): string {
       color: #000;
       font-size: 11px;
       line-height: 1.3;
-      width: ${contentMm}mm;
-      max-width: ${contentMm}mm;
-      margin: 0 auto;
+      width: ${pageMm}mm;
+      max-width: ${pageMm}mm;
+      margin: 0;
+      padding: 0;
     }
-    .receipt { width: ${contentMm}mm; max-width: ${contentMm}mm; padding: 1.5mm ${padX} 2mm; }
+    .receipt {
+      width: ${slipMm}mm;
+      max-width: ${slipMm}mm;
+      margin: 0 auto;
+      padding: 1.5mm ${padX} 2mm;
+      overflow: hidden;
+    }
     .center { text-align: center; }
     .logo { display: block; width: ${logoMm}; height: ${logoMm}; margin: 0 auto 1mm; object-fit: contain; }
     .r-name { font-size: ${nameSize}; font-weight: 700; letter-spacing: 0.04em; margin: 0; text-align: center; overflow-wrap: anywhere; }
     .r-sub { font-size: ${subSize}; letter-spacing: 0; margin: 0.4mm 0 0; text-align: center; overflow-wrap: anywhere; }
     hr.dash { border: 0; border-top: 1px dashed #000; margin: 1.2mm 0; }
-    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    table { width: 100%; max-width: 100%; border-collapse: collapse; table-layout: fixed; }
     .kv td { padding: 0.25mm 0; font-size: ${itemSize}; vertical-align: top; }
     .kv td.k { width: 34%; color: #333; padding-right: 1mm; }
-    .kv td.v { width: 66%; text-align: right; font-weight: 600; overflow-wrap: anywhere; word-break: break-word; }
-    .items { font-size: ${itemSize}; }
-    .items th { font-size: 8px; text-transform: uppercase; letter-spacing: 0; padding: 0 0 0.6mm; border-bottom: 1px solid #000; text-align: left; }
-    .items td { padding: 0.5mm 0; vertical-align: top; }
-    .items .n { text-align: right; white-space: nowrap; padding-left: 1mm; font-variant-numeric: tabular-nums; }
-    .items .item { width: 52%; padding-right: 1mm; overflow-wrap: anywhere; word-break: break-word; }
-    .items .qty { width: 12%; }
-    .items .amt { width: 36%; }
-    .items .unit { display: block; font-size: 7.5px; font-weight: 500; color: #333; margin-top: 0.2mm; }
-    .totals { font-size: ${itemSize}; }
+    .kv td.v {
+      width: 66%;
+      text-align: right;
+      font-weight: 600;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      padding-right: ${amtPad};
+    }
+    .items { font-size: ${itemSize}; width: 100%; }
+    .items th {
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      padding: 0 ${amtPad} 0.6mm 0;
+      border-bottom: 1px solid #000;
+      text-align: left;
+      overflow: hidden;
+    }
+    .items th.n, .items td.n { text-align: right; }
+    .items td { padding: 0.5mm ${amtPad} 0.5mm 0; vertical-align: top; }
+    .items .n { font-variant-numeric: tabular-nums; }
+    .items .item {
+      width: ${itemColMm}mm;
+      max-width: ${itemColMm}mm;
+      padding-right: 1mm;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .items .qty { width: ${cfg.itemsColQtyMm}mm; max-width: ${cfg.itemsColQtyMm}mm; white-space: nowrap; }
+    .items .amt {
+      width: ${cfg.itemsColAmtMm}mm;
+      max-width: ${cfg.itemsColAmtMm}mm;
+      white-space: nowrap;
+      padding-right: ${amtPad};
+      text-align: right;
+    }
+    .items .unit { display: block; font-size: 7.5px; font-weight: 500; color: #333; margin-top: 0.2mm; overflow-wrap: anywhere; word-break: break-word; }
+    .totals { font-size: ${itemSize}; width: 100%; }
     .totals td { padding: 0.35mm 0; }
-    .totals td.l { width: 48%; overflow-wrap: anywhere; }
-    .totals td.r { width: 52%; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .totals td.l { width: 55%; overflow-wrap: anywhere; padding-right: 1mm; }
+    .totals td.r {
+      width: 45%;
+      text-align: right;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      padding-right: ${amtPad};
+      max-width: ${cfg.itemsColAmtMm + cfg.itemsColQtyMm}mm;
+    }
     .totals tr.grand td { font-size: ${totalsGrand}; padding-top: 0.8mm; border-top: 1px solid #000; }
     .note { font-size: 8.5px; margin-top: 1mm; word-break: break-word; }
     .note b { text-transform: uppercase; }
@@ -172,13 +224,26 @@ function receiptStyle(paperMm: ReceiptPaperWidth): string {
     .kot-name { flex: 1; overflow-wrap: anywhere; word-break: break-word; }
 
     @media screen {
-      body { background: #eceff3; padding: 16px 0; width: ${contentMm}mm; }
+      body { background: #eceff3; padding: 16px 0; width: ${pageMm}mm; }
       .receipt { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.18); }
     }
     @page { size: ${pageMm}mm auto; margin: 0; }
     @media print {
-      html, body { width: ${contentMm}mm; max-width: ${contentMm}mm; margin: 0; padding: 0; background: #fff; }
-      .receipt { width: ${contentMm}mm; max-width: ${contentMm}mm; padding: 1.5mm ${padX} 2mm; margin: 0; box-shadow: none; }
+      html, body {
+        width: ${pageMm}mm !important;
+        max-width: ${pageMm}mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff;
+      }
+      .receipt {
+        width: ${slipMm}mm !important;
+        max-width: ${slipMm}mm !important;
+        margin: 0 auto !important;
+        padding: 1.5mm ${padX} 2mm;
+        box-shadow: none;
+        overflow: hidden;
+      }
       .feed { display: block; height: 2mm; }
     }
   `;
@@ -226,6 +291,7 @@ export function buildReceiptHtml(
     ? `<img class="logo" src="${logoSrc}" alt="" />`
     : "";
 
+  const cfg = getPaperConfig(paperMm);
   const rows = order.items
     .map(
       (i) => `<tr>
@@ -235,6 +301,12 @@ export function buildReceiptHtml(
       </tr>`
     )
     .join("");
+
+  const itemsColgroup = `<colgroup>
+        <col style="width:${Math.max(8, innerContentWidthMm(cfg) - cfg.itemsColQtyMm - cfg.itemsColAmtMm)}mm" />
+        <col style="width:${cfg.itemsColQtyMm}mm" />
+        <col style="width:${cfg.itemsColAmtMm}mm" />
+      </colgroup>`;
 
   return `<!DOCTYPE html>
 <html>
@@ -271,6 +343,7 @@ export function buildReceiptHtml(
     <hr class="dash" />
 
     <table class="items">
+      ${itemsColgroup}
       <thead>
         <tr>
           <th class="item">Item</th>
